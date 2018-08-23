@@ -197,6 +197,22 @@ func parseSignedData(data []byte) (*PKCS7, error) {
 		raw:          sd}, nil
 }
 
+func (p7 *PKCS7) EncryptionAlgorithm() (int, error) {
+	data, ok := p7.raw.(envelopedData)
+	if !ok {
+		return 0, ErrNotEncryptedContent
+	}
+	alg := data.EncryptedContentInfo.ContentEncryptionAlgorithm.Algorithm
+	switch {
+	case alg.Equal(oidEncryptionAlgorithmDESCBC), alg.Equal(oidEncryptionAlgorithmDESEDE3CBC):
+		return EncryptionAlgorithmDESCBC, nil
+	case alg.Equal(oidEncryptionAlgorithmAES256CBC), alg.Equal(oidEncryptionAlgorithmAES128GCM), alg.Equal(oidEncryptionAlgorithmAES128CBC):
+		return EncryptionAlgorithmAES128GCM, nil
+	default:
+		return 0, ErrUnsupportedAlgorithm
+	}
+}
+
 func (raw rawCertificates) Parse() ([]*x509.Certificate, error) {
 	if len(raw.Raw) == 0 {
 		return nil, nil
